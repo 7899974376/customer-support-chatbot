@@ -1,14 +1,15 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost:27017/CHATBOT', {
+const MONGO_URI = 'mongodb://127.0.0.1:27017/CHATBOT';  // Use consistent DB name
+
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', () => {
-  console.log('MongoDB connected');
-});
+
+db.on('error', (err) => console.error('❌ MongoDB connection error:', err));
+db.once('open', () => console.log('✅ MongoDB connected'));
 
 module.exports = mongoose;

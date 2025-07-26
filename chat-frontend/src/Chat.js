@@ -1,7 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
-
-const API_URL = "http://localhost:3000/api/chat"; // Change if your backend is on another route/port
+import React, { useState, useEffect, useRef } from "react";
+import API from "./api";
 
 export default function Chat() {
   const [input, setInput] = useState("");
@@ -9,27 +7,38 @@ export default function Chat() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Scroll to bottom on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
-    const userMsg = { role: "user", content: input };
-    setConversation((c) => [...c, userMsg]);
+
+    const userMessage = { sender: "user", text: input };
+    setConversation(prev => [...prev, userMessage]);
+    setInput("");
     setLoading(true);
 
     try {
-      const res = await axios.post(API_URL, {
+      const res = await API.post("/chat", {
         message: input,
-        conversation_id: null // Send session id here if you want session awareness
+        conversation_id: "abc123", // Can be dynamic if needed
       });
-      const aiMsg = { role: "ai", content: res.data.response };
-      setConversation((c) => [...c, aiMsg]);
+
+      const aiResponse = {
+        sender: "ai",
+        text: res?.data?.response || "No response received from AI.",
+      };
+
+      setConversation(prev => [...prev, aiResponse]);
     } catch (err) {
-      setConversation((c) => [...c, { role: "ai", content: "Error contacting AI!" }]);
+      setConversation(prev => [
+        ...prev,
+        { sender: "ai", text: `❌ Error: ${err.message}` },
+      ]);
     }
-    setInput("");
+
     setLoading(false);
   };
 
@@ -38,39 +47,73 @@ export default function Chat() {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "50px auto", border: "1px solid #ccc", borderRadius: 6, padding: 16 }}>
-      <div style={{ height: "400px", overflowY: "auto", marginBottom: 16, background: "#fafafa", padding: 8 }}>
-        {conversation.map((msg, idx) =>
-          <div key={idx} style={{ margin: "10px 0", textAlign: msg.role === "user" ? "right" : "left" }}>
-            <span style={{
-              display: "inline-block",
-              padding: "8px 16px",
-              borderRadius: 20,
-              background: msg.role === "user" ? "#007bff" : "#e5e5ea",
-              color: msg.role === "user" ? "#fff" : "#111"
-            }}>
-              {msg.content}
-            </span>
+    <div style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+      <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>💬 Chat with AI</h2>
+
+      <div
+        style={{
+          border: "1px solid #ccc",
+          borderRadius: "10px",
+          padding: "1rem",
+          height: "400px",
+          overflowY: "auto",
+          backgroundColor: "#f9f9f9",
+        }}
+      >
+        {conversation.map((msg, index) => (
+          <div
+            key={index}
+            style={{
+              marginBottom: "1rem",
+              textAlign: msg.sender === "user" ? "right" : "left",
+            }}
+          >
+            <div
+              style={{
+                display: "inline-block",
+                padding: "0.5rem 1rem",
+                borderRadius: "15px",
+                backgroundColor: msg.sender === "user" ? "#007bff" : "#e0e0e0",
+                color: msg.sender === "user" ? "white" : "black",
+              }}
+            >
+              <b>{msg.sender === "user" ? "You" : "AI"}:</b> {msg.text}
+            </div>
           </div>
-        )}
+        ))}
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={{ display: "flex" }}>
+      <div style={{ marginTop: "1rem", display: "flex" }}>
         <input
           type="text"
           value={input}
-          disabled={loading}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message…"
-          style={{ flex: 1, padding: 10, fontSize: 16 }}
+          placeholder="Type a message..."
+          style={{
+            flexGrow: 1,
+            padding: "0.5rem 1rem",
+            fontSize: "1rem",
+            borderRadius: "20px",
+            border: "1px solid #ccc",
+            outline: "none",
+          }}
         />
         <button
           onClick={sendMessage}
           disabled={loading}
-          style={{ marginLeft: 8, padding: "0 24px", fontSize: 16 }}>
-          Send
+          style={{
+            marginLeft: "1rem",
+            padding: "0.5rem 1rem",
+            borderRadius: "20px",
+            backgroundColor: "#007bff",
+            color: "white",
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "Sending..." : "Send"}
         </button>
       </div>
     </div>
